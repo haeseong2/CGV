@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.spring_movie.dao.AdminDao">
+	<update id="changeMvstate">
+		<choose>
+			<when test="mvstate == 1">
+				UPDATE MOVIES SET MVSTATE = 0 WHERE MVCODE = #{mvcode}
+			</when>
+			<otherwise>
+				UPDATE MOVIES SET MVSTATE = 1 WHERE MVCODE = #{mvcode}
+			</otherwise>
+		</choose>
+	</update>
+	
+	<select id="selectMovie" resultType="com.spring_movie.dto.MovieDto">
+		SELECT MV.MVCODE, MV.MVTITLE, MV.MVPD, MV.MVACTOR, MV.MVGENRE, MV.MVAGE, MV.MVTIME, TO_CHAR(MV.MVOPEN,'YYYY-MM-DD') AS MVOPEN, MV.MVPOSTER, MV.MVSTATE, NVL(RESC.RECOUNT, 0) AS RECOUNT, ROUND(100 * NVL(RESC.RECOUNT, 0) / (SELECT COUNT(*) FROM RESERVATION), 2) AS RERATE, NVL(RVLIKE.RVCOUNT, 0) AS RVLIKE, NVL(RVDISLIKE.RVCOUNT, 0) AS RVDISLIKE
+		FROM MOVIES MV
+		LEFT OUTER JOIN
+		    (SELECT SC.SCMVCODE AS MVCODE, COUNT(*) AS RECOUNT
+		    FROM RESERVATION RE
+		    INNER JOIN SCHEDULES SC ON RE.RESCTHCODE = SC.SCTHCODE AND RE.RESCROOM = SC.SCROOM AND RE.RESCDATE = SC.SCDATE
+		    GROUP BY SC.SCMVCODE) RESC
+		    ON MV.MVCODE = RESC.MVCODE
+		LEFT OUTER JOIN
+		    (SELECT RVMVCODE, COUNT(RVRECOMMEND) AS RVCOUNT FROM REVIEW WHERE RVRECOMMEND = 1 GROUP BY RVMVCODE) RVLIKE
+		    ON MV.MVCODE = RVLIKE.RVMVCODE
+		LEFT OUTER JOIN
+		    (SELECT RVMVCODE, COUNT(RVRECOMMEND) AS RVCOUNT FROM REVIEW WHERE RVRECOMMEND = 0 GROUP BY RVMVCODE) RVDISLIKE
+		    ON MV.MVCODE = RVDISLIKE.RVMVCODE
+		WHERE MV.MVCODE = #{mvcode}
+	</select>
+	
+	<select id="selectReview" resultType="com.spring_movie.dto.ReviewDto">
+		SELECT RV.RVRECODE, RV.RVMID, RV.RVMVCODE, RV.RVCOMMENT, TO_CHAR(RV.RVDATE, 'YYYY-MM-DD') AS RVDATE, RV.RVRECOMMEND, MV.MPROFILE
+		FROM REVIEW RV
+		INNER JOIN MEMBERS MV ON RV.RVMID = MV.MID
+		WHERE RVMVCODE = #{mvcode}
+	</select>
+	
+	<update id="changeThstate">
+		<choose>
+			<when test="thstate == 1">
+				UPDATE THEATERS SET THSTATE = 0 WHERE THCODE = #{thcode}
+			</when>
+			<otherwise>
+				UPDATE THEATERS SET THSTATE = 1 WHERE THCODE = #{thcode}
+			</otherwise>
+		</choose>
+	</update>
+	
+	<select id="getScRoomTime" resultType="com.spring_movie.dto.ScheduleDto">
+		SELECT SC.*, MVTITLE FROM(
+		SELECT SCMVCODE, SCTHCODE, SCROOM, TO_CHAR(SCDATE, 'YYYY-MM-DD') AS SCDATE, TO_CHAR(SCDATE, 'HH24:MI') AS SCTIME FROM SCHEDULES WHERE SCTHCODE = #{scthcode}) SC
+		INNER JOIN MOVIES MV ON MV.MVCODE = SC.SCMVCODE
+		WHERE SCDATE = #{scdate}
+	</select>
+	
+	<update id="updateMstate">
+		<choose>
+			<when test="mstate == 1">
+				UPDATE MEMBERS SET MSTATE = 0 WHERE mid = #{mid}
+			</when>
+			<otherwise>
+				UPDATE MEMBERS SET MSTATE = 1 WHERE mid = #{mid}
+			</otherwise>
+		</choose>
+	</update>
+</mapper>
